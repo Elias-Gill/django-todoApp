@@ -1,0 +1,10 @@
+<div>
+    <h1>Tus listas creadas</h1>
+    {% for item in todos %}
+        <ul>
+            {% include 'todoApp/todo/item.html' %}
+        </ul>
+    {% empty %}
+        La lista se encuentra vacia
+    {% endfor %}
+</div>

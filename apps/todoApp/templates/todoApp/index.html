@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+    <div>
+        <h1>Inicio</h1>
+        <!-- lista de tareas -->
+        <form method="post"
+              id="form"
+              hx-post="{% url 'add_list' %}"
+              hx-target="#lista_container"
+              hx-on::after-request="this.reset()">
+            {% csrf_token %}
+            <input type="text" name="titulo" placeholder="titulo">
+            <input type="text" name="descripcion" placeholder="descripcion">
+            <button type="submit">Anadir</button>
+        </form>
+        <div id="lista_container">{% include "todoApp/lista/lista.html" %}</div>
+    </div>
+    <script>
+        document.body.addEventListener('htmx:afterSwap', function(evt) {
+            const form = document.querySelector("#form");
+            form.reset();
+        });
+    </script>
+{% endblock %}
