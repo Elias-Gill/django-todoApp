@@ -1,9 +1,9 @@
 from django.contrib.auth.decorators import login_required
+from django.http import HttpRequest, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, render
-from django.http import HttpRequest, HttpResponseForbidden, HttpResponseNotAllowed
 
-from apps.todoApp.models import Lista, TodoItem
 from apps.todoApp.forms import AddListForm, AddTodoForm
+from apps.todoApp.models import Lista, TodoItem
 
 # general views
 
@@ -18,24 +18,27 @@ def list_todo_lists(req: HttpRequest):
 
 
 @login_required
-def list_todo_items(req: HttpRequest, list_id: int):
-    ls = get_object_or_404(Lista, id=list_id)
-    return render(
-        req,
-        "todoApp/index.html",
-        {"todos": TodoItem.objects.filter(lista=ls)},
-    )
+def delete_list(req, lista_id):
+    instance = Lista.objects.filter(id=lista_id)
+    instance.delete()
 
+    if req.headers.get("HX-Request"):
+        return render(
+            req,
+            "todoApp/listar_listas.html",
+            {"listas": Lista.objects.filter(usuario=req.user)},
+        )
 
-####################
-# "component" view #
-####################
+    return list_todo_lists(req)
 
 
 @login_required
 def add_list(req):
-    if req.method != "POST":
-        return HttpResponseNotAllowed("POST")
+    if req.method == "GET":
+        return render(
+            req,
+            "todoApp/form_nueva_lista.html",
+        )
 
     form = AddListForm(req.POST)
     if not form.is_valid():
@@ -48,17 +51,46 @@ def add_list(req):
     if req.headers.get("HX-Request"):
         return render(
             req,
-            "todoApp/lista/lista.html",
+            "todoApp/listar_listas.html",
             {"listas": Lista.objects.filter(usuario=req.user)},
         )
 
     return list_todo_lists(req)
 
 
+def delete_todo(req, todo_id, list_id):
+    instance = TodoItem.objects.filter(id=todo_id)
+    instance.delete()
+
+    if req.headers.get("HX-Request"):
+        ls = get_object_or_404(Lista, id=list_id)
+        return render(
+            req,
+            "todoApp/listar_todos.html",
+            {"list_id": list_id, "todos": TodoItem.objects.filter(lista=ls)},
+        )
+
+    return list_todo_lists(req)
+
+
+@login_required
+def list_todo_items(req: HttpRequest, list_id: int):
+    ls = get_object_or_404(Lista, id=list_id)
+    return render(
+        req,
+        "todoApp/todos.html",
+        {"list_id": list_id, "todos": TodoItem.objects.filter(lista=ls)},
+    )
+
+
 @login_required
 def add_todo(req, list_id: int):
-    if req.method != "POST":
-        return HttpResponseNotAllowed("POST")
+    if req.method == "GET":
+        return render(
+            req,
+            "todoApp/form_nuevo_todo.html",
+            {"list_id": list_id},
+        )
 
     form = AddTodoForm(req.POST)
     if not form.is_valid():
@@ -73,8 +105,11 @@ def add_todo(req, list_id: int):
     if req.headers.get("HX-Request"):
         return render(
             req,
-            "todoApp/todo/lista.html",
-            {"todos": TodoItem.objects.filter(usuario=req.user, lista=lista)},
+            "todoApp/listar_todos.html",
+            {
+                "list_id": list_id,
+                "todos": TodoItem.objects.filter(lista=lista),
+            },
         )
 
     return list_todo_items(req, list_id)
